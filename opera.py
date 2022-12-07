@@ -11,7 +11,6 @@ opyra - Online Python by Expert Aggregation
 
 import numpy as np  # only needed for isintance l176
 import pandas as pd  # only needed for isintance l171
-from scipy.special import softmax
 
 # Losses
 def mape(x, y):
@@ -53,7 +52,7 @@ def normalize(x):
 class Mixture:
     def __init__(
         self,
-        Y,
+        y,
         experts,
         awake=None,
         model="BOA",
@@ -121,7 +120,7 @@ class Mixture:
         self.experts = []
         self.targets = []
         self.N = experts.shape[-1]
-        self.update(experts, Y, awake=awake, horizon=1)
+        self.update(experts, y, awake=awake)
 
     def r_by_hand(self, x, y, awake=None):
         """
@@ -148,10 +147,10 @@ class Mixture:
         r = np.mean(r, axis=tuple(batch_axes))
         return y_hat, r
 
-    def predict(self, x, awake=None):
-        x = self.check_columns(x)
-        awake = self.check_awake(awake=awake, x=x)
-        x = x.to_numpy()
+    def predict(self, new_experts, awake=None):
+        new_experts = self.check_columns(new_experts)
+        awake = self.check_awake(awake=awake, x=new_experts)
+        x = new_experts.to_numpy()
         coef = (awake * self.w) / np.sum(awake * self.w, axis=1, keepdims=True)
         y_hat = np.sum(coef * x, axis=-1, keepdims=True)
         return y_hat
@@ -182,11 +181,11 @@ class Mixture:
             awake = awake[self.experts_names]
         return awake
 
-    def update(self, x, y, awake=None, horizon=1):
-        x = self.check_columns(x)
-        awake = self.check_awake(awake, x)
-        x = x.to_numpy()
-        y = y.to_numpy()
+    def update(self, new_experts, new_y, awake=None):
+        new_experts = self.check_columns(new_experts)
+        awake = self.check_awake(awake, new_experts)
+        x = new_experts.to_numpy()
+        y = new_y.to_numpy()
         if x.shape[:-1] != y.shape:
             raise ValueError("Bad dimensions: x and y should have the same shape")
         for index, value in enumerate(y):
@@ -197,7 +196,7 @@ class Mixture:
             self.weights.append(updates.get("weights"))
             self.experts.append(xt)
             self.targets.append(value)
-        return self.predictions
+        # return self.predictions
 
     def predict_at_t_BOA(self, x, y, awake=None):
         """
