@@ -70,13 +70,13 @@ class Mixture:
         elif loss_type.lower() in ["mape", "mae", "mse", "msle", "mspe"]:
             if loss_gradient:
                 self.loss_type = globals()["gradient_" + loss_type.lower()]
-                print("gradient_" + loss_type.lower())
             else:
                 self.loss_type = globals()[loss_type.lower()]
         else:
             raise NotImplementedError(f"{loss_type} loss function is not implemented.")
         self.epsilon = epsilon
         self.model = model
+        self.loss_gradient = loss_gradient
         self.gradient_to_call = getattr(self, "r_by_hand")
         if model.upper() == "BOA":
             self.predict_at_t = getattr(self, "predict_at_t_BOA")
@@ -142,7 +142,13 @@ class Mixture:
         batch_shape = x.shape[:-1]
         batch_axes = list(range(len(batch_shape)))
         y_hat = np.sum(self.w * x, axis=-1, keepdims=True)
-        r = awake * (self.loss_type(y_hat, y) - self.loss_type(x, y))
+        if not self.loss_gradient:
+            r = awake * (self.loss_type(y_hat, y) - self.loss_type(x, y))
+        else:
+            r = awake * (
+                self.loss_type(y_hat, y) * y_hat - self.loss_type(y_hat, y) * x
+            )
+
         self.awakes.append(awake)
         r = np.mean(r, axis=tuple(batch_axes))
         return y_hat, r
