@@ -1,6 +1,3 @@
-import os
-
-os.chdir("/home/riad/EDF/opera_py")
 import pandas as pd
 from opera import Mixture
 import numpy as np
