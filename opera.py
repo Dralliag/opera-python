@@ -59,7 +59,6 @@ class Mixture:
         coefficients="uniform",
         loss_type=mse,
         loss_gradient=True,
-        epsilon=1e-30,
     ):
         if callable(loss_type):
             self.loss_type = loss_type
@@ -74,7 +73,6 @@ class Mixture:
                 self.loss_type = globals()[loss_type.lower()]
         else:
             raise NotImplementedError(f"{loss_type} loss function is not implemented.")
-        self.epsilon = epsilon
         self.model = model
         self.loss_gradient = loss_gradient
         self.gradient_to_call = getattr(self, "r_by_hand")
@@ -111,7 +109,6 @@ class Mixture:
         self.max_losses = np.zeros(weights_shape)
         self.cum_regrets = np.zeros(weights_shape)
         self.cum_reg_regrets = np.zeros(weights_shape)
-        # self.learning_rates = np.ones(weights_shape) / self.epsilon
         self.learning_rates = np.ones(weights_shape)
         self.max_sq_regrets = np.zeros(weights_shape)
         self.predictions = []
@@ -308,10 +305,10 @@ class Mixture:
         r_square = np.square(r)
         self.cum_vars += r_square
         self.max_losses = np.maximum(self.max_losses, np.abs(r))
-
+        epsilon = 1e-30
         new_learning_rates = np.minimum(
             np.minimum(0.5 / self.max_losses, np.sqrt(np.log(self.K) / self.cum_vars)),
-            np.ones(self.learning_rates.shape) / self.epsilon,
+            np.ones(self.learning_rates.shape) / epsilon,
         )
         self.cum_regrets = (
             new_learning_rates / self.learning_rates * self.cum_regrets
