@@ -111,11 +111,11 @@ class Mixture:
         self.cum_reg_regrets = np.zeros(weights_shape)
         self.learning_rates = np.ones(weights_shape)
         self.max_sq_regrets = np.zeros(weights_shape)
-        self.predictions = []
-        self.weights = []
-        self.awakes = []
-        self.experts = []
-        self.targets = []
+        self.predictions = np.array([])
+        self.weights = np.empty((0, experts.shape[-1]))
+        self.awakes = np.empty((0, experts.shape[-1]))
+        self.experts = np.empty((0, experts.shape[-1]))
+        self.targets = np.array([])
         self.N = experts.shape[-1]
         self.update(experts, y, awake=awake)
 
@@ -146,7 +146,7 @@ class Mixture:
                 self.loss_type(y_hat, y) * y_hat - self.loss_type(y_hat, y) * x
             )
 
-        self.awakes.append(awake)
+        self.awakes = np.vstack((self.awakes, awake))
         r = np.mean(r, axis=tuple(batch_axes))
         return y_hat, r
 
@@ -195,11 +195,10 @@ class Mixture:
             xt = x[index]
             yt = np.expand_dims(value, -1)
             y_hat, updates = self.predict_at_t(xt, yt, awake=awake[index, :])
-            self.predictions.append(np.squeeze(y_hat, axis=-1))
-            self.weights.append(updates.get("weights"))
-            self.experts.append(xt)
-            self.targets.append(value)
-        # return self.predictions
+            self.predictions = np.append(self.predictions, y_hat)
+            self.weights = np.vstack((self.weights, updates.get("weights")))
+            self.experts = np.vstack((self.experts, xt))
+            self.targets = np.append(self.targets, value)
 
     def predict_at_t_BOA(self, x, y, awake=None):
         """
