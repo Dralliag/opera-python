@@ -47,7 +47,11 @@ def avg_loss(ax, alabels, unimix, colors, x):
 
 
 def cumul_res(ax, alabels, unimix, colors, x):
-    preds = np.column_stack((x.experts, x.predictions, unimix))
+    pred_experts = x.experts * x.awakes + x.predictions.reshape(
+        x.predictions.shape[0], 1
+    ) * (1 - x.awakes)
+
+    preds = np.column_stack((pred_experts, x.predictions, unimix))
     cumres = np.cumsum([x.targets - pred for pred in preds.T], 1).T
     for i in range(2, cumres.shape[1]):
         ax.plot(cumres[:, i], color=colors[i], label=alabels[i])
@@ -59,7 +63,10 @@ def cumul_res(ax, alabels, unimix, colors, x):
 
 
 def dyn_avg_loss(ax, alabels, unimix, colors, x):
-    preds = np.column_stack((x.experts, x.predictions, unimix))
+    pred_experts = x.experts * x.awakes + x.predictions.reshape(
+        x.predictions.shape[0], 1
+    ) * (1 - x.awakes)
+    preds = np.column_stack((pred_experts, x.predictions, unimix))
     cumloss = np.cumsum([x.loss_type(x.targets, pred) for pred in preds.T], 1).T
     for i in range(0, cumloss.shape[1]):
         ax.plot(cumloss[:, i], color=colors[i], label=alabels[i])
