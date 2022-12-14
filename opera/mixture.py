@@ -326,11 +326,11 @@ class Mixture:
             raise ValueError(
                 f'Wrong value for coefficients, expected an np.ndarray of shape {experts.shape[-1]} or "uniform"'
             )
-        self.cum_vars = np.zeros(weights_shape)
-        self.max_losses = np.zeros(weights_shape)
+        self.cum_vars = np.ones(weights_shape) / np.power(2, 20)
+        self.max_losses = np.ones(weights_shape) / np.power(2, 20)
         self.cum_regrets = np.zeros(weights_shape)
         self.cum_reg_regrets = np.zeros(weights_shape)
-        self.learning_rates = np.ones(weights_shape)
+        self.learning_rates = np.ones(weights_shape) / np.power(2, 20)
         self.max_sq_regrets = np.zeros(weights_shape)
         self.predictions = np.array([])
         self.weights = np.empty((0, experts.shape[-1]))
@@ -492,6 +492,7 @@ class Mixture:
             np.ones(self.w.shape) / self.K,
             np.divide(self.w, w_sum),
         )
+
         self.w = normalize(awake * self.w)
 
         y_hat, r = self.gradient_to_call(x, y, awake=awake)
