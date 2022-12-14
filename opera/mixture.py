@@ -275,7 +275,7 @@ class Mixture:
         awake=None,
         model="BOA",
         coefficients="uniform",
-        loss_type=mse,
+        loss_type="mse",
         loss_gradient=True,
     ):
         if callable(loss_type):
@@ -296,10 +296,13 @@ class Mixture:
         self.gradient_to_call = getattr(self, "r_by_hand")
         if model.upper() == "BOA":
             self.predict_at_t = getattr(self, "predict_at_t_BOA")
+            self.update_coefficient = getattr(self, "update_coefficient_BOA")
         elif model.upper() == "MLPOL":
             self.predict_at_t = getattr(self, "predict_at_t_MLPol")
+            self.update_coefficient = getattr(self, "update_coefficient_MLPol")
         elif model.upper() == "MLPROD":
             self.predict_at_t = getattr(self, "predict_at_t_MLProd")
+            self.update_coefficient = getattr(self, "update_coefficient_MLProd")
         else:
             raise NotImplementedError(f"Algorithm {model} is not implemented.")
 
@@ -406,8 +409,15 @@ class Mixture:
         """
         new_experts = self.check_columns(new_experts)
         awake = self.check_awake(awake, new_experts)
-        x = new_experts.to_numpy()
-        y = new_y.to_numpy()
+        if not isinstance(new_experts, np.ndarray):
+            x = new_experts.to_numpy()
+        else:
+            x = new_experts
+        if not isinstance(new_y, np.ndarray):
+            y = new_y.to_numpy()
+        else:
+            y = new_y
+
         if x.shape[:-1] != y.shape:
             raise ValueError("Bad dimensions: x and y should have the same shape")
         for index, value in enumerate(y):
@@ -418,6 +428,7 @@ class Mixture:
             self.weights = np.vstack((self.weights, updates.get("weights")))
             self.experts = np.vstack((self.experts, xt))
             self.targets = np.append(self.targets, value)
+        self.update_coefficient()
 
     def predict_at_t_BOA(self, x, y, awake=None):
         """predicts at time t using BOA."""
@@ -460,6 +471,17 @@ class Mixture:
 
         return y_hat, slot_variables_updates
 
+    def update_coefficient_BOA(self):
+        Raux = (
+            np.log(self.learning_rates)
+            + np.log(1 / self.K)
+            + self.learning_rates * self.cum_reg_regrets
+        )
+        Rmax = np.max(Raux)
+        self.w = np.zeros(self.N)
+        self.w = np.exp(Raux - Rmax)
+        self.w = normalize(self.w)
+
     def predict_at_t_MLPol(self, x, y, awake=None):
         """predicts at time t using MLpol."""
         np_relu = np.maximum(self.cum_regrets, 0)
@@ -494,6 +516,17 @@ class Mixture:
 
         return y_hat, slot_variables_updates
 
+    def update_coefficient_MLPol(self):
+        np_relu = np.maximum(self.cum_regrets, 0)
+        self.w = np.multiply(self.learning_rates, np_relu)
+        w_sum = np.sum(self.w, axis=-1, keepdims=True)
+        self.w = np.where(
+            np.equal(w_sum, np.zeros(self.w.shape)),
+            np.ones(self.w.shape) / self.K,
+            np.divide(self.w, w_sum),
+        )
+        self.w = normalize(self.w)
+
     def predict_at_t_MLProd(self, x, y, awake=None):
         """predicts at time t using MLprod."""
         self.w = np.multiply(self.learning_rates, np.exp(self.cum_regrets))
@@ -524,6 +557,11 @@ class Mixture:
         }
 
         return y_hat, slot_variables_updates
+
+    def update_coefficient_MLProd(self):
+        self.w = np.multiply(self.learning_rates, np.exp(self.cum_regrets))
+        self.w = np.divide(self.w, np.sum(self.w, axis=-1, keepdims=True))
+        self.w = normalize(self.w)
 
     def plot_mixture(self, plot_type="all", colors=None):
         """provides different diagnostic plots for an aggregation procedure.
