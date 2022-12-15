@@ -9,7 +9,7 @@ import seaborn as sns
 
 # Losses
 def mape(x, y):
-    return np.abs(y - x) / x
+    return np.abs(x - y) / y
 
 
 def gradient_mape(x, y):
@@ -37,7 +37,7 @@ def msle(x, y):
 
 
 def mspe(x, y):
-    return np.square(y - x) / np.square(x)
+    return np.square(y - x) / np.square(y)
 
 
 def normalize(x):
