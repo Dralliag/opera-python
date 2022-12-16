@@ -3,12 +3,22 @@ targets <- read.csv('./data/targets.csv')
 targets <- targets$x
 experts <- read.csv('./data/experts.csv')
 
-awake <-  t(replicate(nrow(experts), c(1, 0, 1)))
+# model = "BOA"
+# model = "MLpol"
+model = "MLprod"
+
+set_awake = TRUE
+
+if(set_awake){
+  awake <-  t(replicate(nrow(experts), c(1, 0, 1)))
+} else {
+  awake <-  t(replicate(nrow(experts), c(1, 1, 1)))
+}
 
 mod_1 <- mixture(Y = targets[1:100], 
                  experts = experts[1:100, ], 
                  awake = awake[1:100, ], 
-                 model = "BOA", 
+                 model = model, 
                  loss.type = "square", 
                  loss.gradient = FALSE)
 
@@ -23,4 +33,4 @@ predict(mod_1,
         awake = awake[-c(1:100), ],
         online = FALSE, type = "response")
 
-plot(mod_1, dynamic=TRUE)
+# plot(mod_1, dynamic=TRUE)
