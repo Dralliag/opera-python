@@ -36,8 +36,16 @@ def msle(x, y):
     return np.square(np.log(y + 1) - np.log(x + 1))
 
 
+def gradient_msle(x, y):
+    return 2 * (np.log(y + 1) - np.log(x + 1)) * (-1 / (x + 1))
+
+
 def mspe(x, y):
     return np.square(y - x) / np.square(y)
+
+
+def gradient_mspe(x, y):
+    return -2 * x + 2 * y
 
 
 def normalize(x):
@@ -284,9 +292,13 @@ class Mixture:
                 raise ValueError(
                     "When a custom loss function is passed the loss_gradient should be either False or the gradient function corresponding to the loss function"
                 )
+            if callable(loss_gradient):
+                self.loss_type = loss_gradient
         elif loss_type.lower() in ["mape", "mae", "mse", "msle", "mspe"]:
-            if loss_gradient:
+            if loss_gradient and not callable(loss_gradient):
                 self.loss_type = globals()["gradient_" + loss_type.lower()]
+            elif loss_gradient and callable(loss_gradient):
+                self.loss_type = loss_gradient
             else:
                 self.loss_type = globals()[loss_type.lower()]
         else:
@@ -322,6 +334,7 @@ class Mixture:
                 raise ValueError(
                     f"Bad dimention for coefficients, expected {experts.shape[-1]} got {coefficients.shape[0]}"
                 )
+            self.w = coefficients
         else:
             raise ValueError(
                 f'Wrong value for coefficients, expected an np.ndarray of shape {experts.shape[-1]} or "uniform"'
@@ -368,7 +381,7 @@ class Mixture:
         new_experts = self.check_columns(new_experts)
         awake = self.check_awake(awake=awake, x=new_experts)
         x = new_experts.to_numpy()
-        coef = (awake * self.w) / np.sum(awake * self.w, axis=1, keepdims=True)
+        coef = normalize(awake * self.w)
         y_hat = np.sum(coef * x, axis=-1, keepdims=True)
         return y_hat
 
@@ -396,6 +409,7 @@ class Mixture:
                     )
                 )
             awake = awake[self.experts_names]
+            awake = awake.to_numpy()
         return awake
 
     def update(self, new_experts, new_y, awake=None):
@@ -417,7 +431,8 @@ class Mixture:
             y = new_y.to_numpy()
         else:
             y = new_y
-
+        if not isinstance(awake, np.ndarray):
+            awake = awake.to_numpy()
         if x.shape[:-1] != y.shape:
             raise ValueError("Bad dimensions: x and y should have the same shape")
         for index, value in enumerate(y):
@@ -428,6 +443,9 @@ class Mixture:
             self.weights = np.vstack((self.weights, updates.get("weights")))
             self.experts = np.vstack((self.experts, xt))
             self.targets = np.append(self.targets, value)
+        # TODO in R version, the loss used is the loss without gradient even if loss.gradient=TRUE
+        # checks if it's the correct behavior
+        self.loss = np.mean(self.loss_type(self.predictions, self.targets))
         self.update_coefficient()
 
     def predict_at_t_BOA(self, x, y, awake=None):
