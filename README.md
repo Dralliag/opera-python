@@ -32,7 +32,7 @@ algorithms of the online learning literature that form predictions
 past performance. That is,
 
 <p align="center">
-<img src="man/figures/formula.png" width="20%" style="display: block; margin: auto;" />
+<img src="figures/formula.png" width="20%" style="display: block; margin: auto;" />
 </p>
 
 These algorithms come with finite time worst-case guarantees. The
@@ -97,7 +97,7 @@ The results can be displayed with method `plot_mixture`.
 MLPOL1.plot_mixture()
 ```
 
-<img src="man/figures/Figure_1.png" width="80%" style="display: block; margin: auto;" />
+<img src="figures/Figure_1.png" width="80%" style="display: block; margin: auto;" />
 
 The same results can also be obtained by initializing the mixture with some data and updating it later:
 
