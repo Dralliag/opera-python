@@ -49,7 +49,7 @@ def gradient_mspe(x, y):
 
 
 def normalize(x):
-    return x / sum(x)
+    return x / np.sum(x, axis=-1)
 
 
 def plot_weight(ax, labels, colors, mixture):
@@ -381,7 +381,7 @@ class Mixture:
         new_experts = self.check_columns(new_experts)
         awake = self.check_awake(awake=awake, x=new_experts)
         x = new_experts.to_numpy()
-        coef = normalize(awake * self.w)
+        coef = np.apply_along_axis(normalize, 1, (awake * self.w))
         y_hat = np.sum(coef * x, axis=-1, keepdims=True)
         return y_hat
 
