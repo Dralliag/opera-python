@@ -1,4 +1,3 @@
-import pytest
 from opera.mixture import Mixture
 import numpy as np
 
