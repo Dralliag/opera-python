@@ -64,9 +64,9 @@ pip install .
 Here, we provide a concrete example on how to use the package. The data are 
 provided in the folder data.
 
-The dataset contains three experts in experts.csv. And the corresponding targets in targets.csv.
+The dataset contains three experts in experts.csv and the corresponding targets in targets.csv.
 
-Mre information about the dataset can be found [here](https://github.com/Dralliag/opera#example-predict-the-weekly-electricity-consumption).
+More information about the dataset can be found [here](https://github.com/Dralliag/opera#example-predict-the-weekly-electricity-consumption).
 
 ### Load the datasets
 ``` py
@@ -142,6 +142,7 @@ the prediction.
 ``` py
 newexperts = experts.iloc[-10:] # last ten observations of the dataset 
 pred = MLPOL1.predict(new_experts = newexperts)
+print(pred)
 
 # array([[53308.36828688],
 #        [57099.33148933],
@@ -160,7 +161,9 @@ The same result can be easily obtained by using the last model
 coefficients to perform the weighted sum of the expert advice.
 
 ``` py
+import numpy as np
 pred = np.sum(newexperts * MLPOL1.w, axis=1)
+print(pred)
 # array([[53308.36828688],
 #        [57099.33148933],
 #        [56767.62097983],
