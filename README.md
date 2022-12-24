@@ -81,6 +81,7 @@ the experts and targets, the possible parameters, and the evaluation criterion.
 Bellow, we define the ML-Poly algorithm, evaluated by the square loss.
 
 ``` py
+from opera import Mixture
 MLPOL1 = Mixture(
     y=targets.iloc[0:100],
     experts=experts.iloc[0:100],
