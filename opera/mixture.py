@@ -189,10 +189,11 @@ def dyn_avg_loss(ax, labels, unimix, colors, mixture, max_experts):
     cumloss = np.cumsum(
         [mixture.loss_type(mixture.targets, pred) for pred in preds.T], 1
     ).T
+    div = np.arange(1, preds.shape[0] + 1)
+    div = np.repeat(div, preds.shape[1]).reshape(preds.shape)
+    cumloss = cumloss / div
     for i in range(0, cumloss.shape[1]):
         ax.plot(cumloss[:, i], color=colors[i], label=alabels[i])
-    # ax.plot(cumloss[:, 0], color=colors[0], label=alabels[0])
-    # ax.plot(cumloss[:, 1], color=colors[1], label=alabels[1])
     ax.set_title("Dynamic average loss")
     ax.set(ylabel="Cumulative Loss")
     ax.grid()
@@ -698,12 +699,7 @@ class Mixture:
         colors = np.array(colors)
         if not max_experts or max_experts > K:
             max_experts = K
-        if K <= max_experts:
-            labels = np.array(self.experts_names)
-            # alabels = np.hstack((labels, self.model, "Uniform"))
-        else:
-            labels = np.array([str(i) for i in range(K)])
-            # alabels = np.hstack((labels, self.model[0], "U"))
+        labels = np.array(self.experts_names)
         if plot_type == "all":
             fig, ax = plt.subplots(3, 2, figsize=figsize, dpi=100)
             # Stack plot of weights associated to each expert
@@ -775,5 +771,4 @@ class Mixture:
             fig.tight_layout()
         else:
             raise (NotImplementedError(f"{plot_type} plot not implemented yet."))
-        # TODO max experts, prendre que les meilleurs experts et aggréger les pires
         plt.show()
