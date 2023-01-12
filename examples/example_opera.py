@@ -55,3 +55,4 @@ mod_1.predict(new_experts=experts.iloc[100:], awake=awake[100:])
 mod_2.predict(new_experts=experts.iloc[100:], awake=awake[100:])
 
 mod_1.plot_mixture()
+mod_1.plot_mixture(plot_type="plot_weight")

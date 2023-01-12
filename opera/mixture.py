@@ -62,7 +62,13 @@ def idx_best(arr, k):
     return result[arr.shape[0] - k :]
 
 
-def plot_weight(ax, labels, colors, mixture, max_experts):
+def plot_weight(ax, labels, colors, mixture, max_experts, title=None, ylabel=None):
+                  
+    if title is None:
+      title = "Weights associated with the experts"
+    if ylabel is None :
+      ylabel="Weights"
+      
     # Stack plot of weights associated to each expert
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
@@ -82,12 +88,18 @@ def plot_weight(ax, labels, colors, mixture, max_experts):
         colors=colors,
         labels=labels,
     )
-    ax.set_title("Weights associated with the experts")
-    ax.set(ylabel="Weights")
+    ax.set_title(title)
+    ax.set(ylabel=ylabel)
     ax.grid()
 
 
-def boxplot_weight(ax, labels, colors, mixture, max_experts):
+def boxplot_weight(ax, labels, colors, mixture, max_experts, title=None, ylabel=None):
+                  
+    if title is None:
+      title = "Weights associated with the experts"
+    if ylabel is None :
+      ylabel="Weights"
+    
     # Boxplot of weights associated to each expert
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
@@ -121,13 +133,19 @@ def boxplot_weight(ax, labels, colors, mixture, max_experts):
     )
     for box, c in zip(ax.patches, colors[idx]):
         box.set_facecolor(c)
-    ax.set_title("Weights associated with the experts")
-    ax.set(ylabel="Weights")
+    ax.set_title(title)
+    ax.set(ylabel=ylabel)
     ax.grid()
     return handles
 
 
-def avg_loss(ax, labels, unimix, colors, mixture, max_experts):
+def avg_loss(ax, labels, unimix, colors, mixture, max_experts, title=None, ylabel=None):
+                  
+    if title is None:
+      title = "Average loss suffered by the experts"
+    if ylabel is None :
+      ylabel="Average Loss"
+    
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
     id_best_worst = id_worst[np.argmax(mixture.w[id_worst])]
@@ -164,12 +182,18 @@ def avg_loss(ax, labels, unimix, colors, mixture, max_experts):
     sortedloss = np.sort(loss.mean(1))  # - epsilon
     idx = np.argsort(loss.mean(1))
     ax.bar(alabels[idx], sortedloss, color=colors[idx], alpha=1, label=alabels[idx])
-    ax.set_title("Average loss suffered by the experts")
-    ax.set(ylabel="Average Loss")
+    ax.set_title(title)
+    ax.set(ylabel=ylabel)
     ax.grid()
 
 
-def cumul_res(ax, labels, unimix, colors, mixture, max_experts):
+def cumul_res(ax, labels, unimix, colors, mixture, max_experts, title=None, ylabel=None):
+  
+    if title is None:
+      title = "Cumulative Residuals"
+    if ylabel is None :
+      ylabel="Cumulative Residuals"
+
     p_experts = mixture.experts * mixture.awakes + mixture.predictions.reshape(
         mixture.predictions.shape[0], 1
     ) * (1 - mixture.awakes)
@@ -209,12 +233,18 @@ def cumul_res(ax, labels, unimix, colors, mixture, max_experts):
         ax.plot(cumres[:, i], color=colors[i], label=alabels[i])
     ax.plot(cumres[:, 0], color=colors[0], label=alabels[0])
     ax.plot(cumres[:, 1], color=colors[1], label=alabels[1])
-    ax.set_title("Cumulative Residuals")
-    ax.set(ylabel="Cumulative Residuals")
+    ax.set_title(title)
+    ax.set(ylabel=ylabel)
     ax.grid()
 
 
-def dyn_avg_loss(ax, labels, unimix, colors, mixture, max_experts):
+def dyn_avg_loss(ax, labels, unimix, colors, mixture, max_experts, title=None, ylabel=None): 
+  
+    if title is None:
+      title = "Dynamic average loss"
+    if ylabel is None :
+      ylabel="Cumulative Loss"
+
     p_experts = mixture.experts * mixture.awakes + mixture.predictions.reshape(
         mixture.predictions.shape[0], 1
     ) * (1 - mixture.awakes)
@@ -256,12 +286,20 @@ def dyn_avg_loss(ax, labels, unimix, colors, mixture, max_experts):
     cumloss = cumloss / div
     for i in range(0, cumloss.shape[1]):
         ax.plot(cumloss[:, i], color=colors[i], label=alabels[i])
-    ax.set_title("Dynamic average loss")
-    ax.set(ylabel="Cumulative Loss")
+
+    ax.set_title(title)
+    ax.set(ylabel=ylabel)
+
     ax.grid()
 
 
-def contrib(ax, labels, colors, mixture, max_experts):
+def contrib(ax, labels, colors, mixture, max_experts, title=None, ylabel=None):
+              
+    if title is None:
+      title = "Contribution of each expert to the prediction"
+    if ylabel is None :
+      ylabel="Contributions"
+      
     # Stack plot of weights associated to each expert
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
@@ -289,8 +327,8 @@ def contrib(ax, labels, colors, mixture, max_experts):
         linestyle="dashed",
         label="Predictions",
     )
-    ax.set_title("Contribution of each expert to the prediction")
-    ax.set(ylabel="Contributions")
+    ax.set_title(title)
+    ax.set(ylabel=ylabel)
     ax.grid()
 
 
@@ -417,7 +455,7 @@ class Mixture:
     print(mod_3.predictions)
     print(mod_3.predict(new_experts=experts.iloc[100:]))
     colors = cm.rainbow(np.linspace(0, 400, 1000))
-    mod_3.plot_mixture(plot_type="plot_weight", colors=colors)
+    mod_3.plot_mixture(plot_type="plot_weight", colors=colors, title = "Custom title", ylabel = "Ylabel")
 
     """
 
@@ -727,7 +765,7 @@ class Mixture:
         self.w = np.divide(self.w, np.sum(self.w, axis=-1, keepdims=True))
         self.w = normalize(self.w)
 
-    def plot_mixture(self, plot_type="all", colors=None, max_experts=None):
+    def plot_mixture(self, plot_type="all", colors=None, max_experts=None, title=None, ylabel=None):
         """provides different diagnostic plots for an aggregation procedure.
 
         Args:
@@ -741,6 +779,8 @@ class Mixture:
                 Defaults to "all".
             colors (numpy.array, optional): array of colors to be used for the plots. Defaults to None.
             max_experts (int): max number of expert to be displayed
+            title (str, optional) : title. Only available plotting one graphic (not using plot_type = "all")
+            ylabel (str, optional) : ylabel. Only available plotting one graphic (not using plot_type = "all")
         """
         figsize = (10, 8)
         if len(np.array(self.experts).shape) > 2:
@@ -786,7 +826,7 @@ class Mixture:
         elif plot_type == "boxplot_weight":
             fig, ax = plt.subplots(dpi=100)
             # Boxplot of weights associated to each expert
-            handles = boxplot_weight(ax, labels, colors, self, max_experts)
+            handles = boxplot_weight(ax, labels, colors, self, max_experts, title, ylabel)
             fig.legend(
                 handles["boxes"],
                 labels,
@@ -799,35 +839,35 @@ class Mixture:
         elif plot_type == "plot_weight":
             fig, ax = plt.subplots(dpi=100)
             # Stack plot of weights associated to each expert
-            plot_weight(ax, labels, colors, self, max_experts)
+            plot_weight(ax, labels, colors, self, max_experts, title, ylabel)
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "contrib":
             fig, ax = plt.subplots(dpi=100)
             # Stack plot of weights associated to each expert
-            contrib(ax, labels, colors, self, max_experts)
+            contrib(ax, labels, colors, self, max_experts, title, ylabel)
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "dyn_avg_loss":
             fig, ax = plt.subplots(dpi=100)
             # Barplot loss
-            dyn_avg_loss(ax, labels, unimix, colors, self, max_experts)
+            dyn_avg_loss(ax, labels, unimix, colors, self, max_experts, title, ylabel)
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "cumul_res":
             fig, ax = plt.subplots(dpi=100)
             # Cumulative residuals
-            cumul_res(ax, labels, unimix, colors, self, max_experts)
+            cumul_res(ax, labels, unimix, colors, self, max_experts, title, ylabel)
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "avg_loss":
             fig, ax = plt.subplots(dpi=100)
             # Cumulative loss
-            avg_loss(ax, labels, unimix, colors, self, max_experts)
+            avg_loss(ax, labels, unimix, colors, self, max_experts, title, ylabel)
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
