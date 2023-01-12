@@ -92,14 +92,25 @@ def boxplot_weight(ax, labels, colors, mixture, max_experts):
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
 
+    id_best_worst = id_worst[np.argmax(mixture.w[id_worst])]
+    id_worst_worst = id_worst[np.argmin(mixture.w[id_worst])]
     weights = mixture.weights[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
-    if mixture.w.shape[0] > max_experts:
-        avg_weights = np.mean(mixture.weights[:, id_worst], axis=1, keepdims=True)
-        weights = np.hstack([weights, avg_weights])
-        colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-        labels = np.hstack([labels, ["others"]])
+    if id_worst.shape[0] > 0:
+        worst_worst_weights = mixture.weights[:, id_worst_worst]
+        worst_worst_weights = worst_worst_weights.reshape(
+            worst_worst_weights.shape[0], 1
+        )
+        weights = np.hstack([weights, worst_worst_weights])
+        colors = np.vstack([colors, [0.5, 0.5, 0.5]])
+        labels = np.hstack([labels, ["worst others"]])
+    if id_worst.shape[0] > 1:
+        best_worst_weights = mixture.weights[:, id_best_worst]
+        best_worst_weights = best_worst_weights.reshape(best_worst_weights.shape[0], 1)
+        weights = np.hstack([weights, best_worst_weights])
+        colors = np.vstack([colors, [0.7, 0.7, 0.7]])
+        labels = np.hstack([labels, ["best others"]])
 
     idx = np.argsort(np.mean(weights, 0))[::-1]
     handles = ax.boxplot(
@@ -119,16 +130,33 @@ def boxplot_weight(ax, labels, colors, mixture, max_experts):
 def avg_loss(ax, labels, unimix, colors, mixture, max_experts):
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
+    id_best_worst = id_worst[np.argmax(mixture.w[id_worst])]
+    id_worst_worst = id_worst[np.argmin(mixture.w[id_worst])]
     experts = mixture.experts[:, id_best]
     predictions = mixture.predictions
     targets = mixture.targets
     colors = colors[id_best]
     labels = labels[id_best]
-    if mixture.w.shape[0] > max_experts:
-        avg_experts = np.mean(mixture.experts[:, id_worst], axis=1, keepdims=True)
-        experts = np.hstack([experts, avg_experts])
-        colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-        labels = np.hstack([labels, ["others"]])
+    # if mixture.w.shape[0] > max_experts:
+    #     avg_experts = np.mean(mixture.experts[:, id_worst], axis=1, keepdims=True)
+    #     experts = np.hstack([experts, avg_experts])
+    #     colors = np.vstack([colors, [0.6, 0.6, 0.6]])
+    #     labels = np.hstack([labels, ["others"]])
+
+    if id_worst.shape[0] > 0:
+        worst_worst_experts = mixture.experts[:, id_worst_worst]
+        worst_worst_experts = worst_worst_experts.reshape(
+            worst_worst_experts.shape[0], 1
+        )
+        experts = np.hstack([experts, worst_worst_experts])
+        colors = np.vstack([colors, [0.5, 0.5, 0.5]])
+        labels = np.hstack([labels, ["worst others"]])
+    if id_worst.shape[0] > 1:
+        best_worst_experts = mixture.experts[:, id_best_worst]
+        best_worst_experts = best_worst_experts.reshape(best_worst_experts.shape[0], 1)
+        experts = np.hstack([experts, best_worst_experts])
+        colors = np.vstack([colors, [0.7, 0.7, 0.7]])
+        labels = np.hstack([labels, ["best others"]])
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
     preds = np.column_stack((experts, predictions, unimix))
@@ -148,14 +176,31 @@ def cumul_res(ax, labels, unimix, colors, mixture, max_experts):
 
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
+    id_best_worst = id_worst[np.argmax(mixture.w[id_worst])]
+    id_worst_worst = id_worst[np.argmin(mixture.w[id_worst])]
     pred_experts = p_experts[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
-    if mixture.w.shape[0] > max_experts:
-        avg_pred_experts = np.mean(p_experts[:, id_worst], axis=1, keepdims=True)
-        pred_experts = np.hstack([pred_experts, avg_pred_experts])
-        colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-        labels = np.hstack([labels, ["others"]])
+    # if mixture.w.shape[0] > max_experts:
+    #     avg_pred_experts = np.mean(p_experts[:, id_worst], axis=1, keepdims=True)
+    #     pred_experts = np.hstack([pred_experts, avg_pred_experts])
+    #     colors = np.vstack([colors, [0.6, 0.6, 0.6]])
+    #     labels = np.hstack([labels, ["others"]])
+
+    if id_worst.shape[0] > 0:
+        worst_worst_experts = p_experts[:, id_worst_worst]
+        worst_worst_experts = worst_worst_experts.reshape(
+            worst_worst_experts.shape[0], 1
+        )
+        pred_experts = np.hstack([pred_experts, worst_worst_experts])
+        colors = np.vstack([colors, [0.5, 0.5, 0.5]])
+        labels = np.hstack([labels, ["worst others"]])
+    if id_worst.shape[0] > 1:
+        best_worst_experts = p_experts[:, id_best_worst]
+        best_worst_experts = best_worst_experts.reshape(best_worst_experts.shape[0], 1)
+        pred_experts = np.hstack([pred_experts, best_worst_experts])
+        colors = np.vstack([colors, [0.7, 0.7, 0.7]])
+        labels = np.hstack([labels, ["best others"]])
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
     preds = np.column_stack((pred_experts, mixture.predictions, unimix))
@@ -175,14 +220,31 @@ def dyn_avg_loss(ax, labels, unimix, colors, mixture, max_experts):
     ) * (1 - mixture.awakes)
     id_worst = idx_worst(mixture.w, max_experts)
     id_best = idx_best(mixture.w, max_experts)
+    id_best_worst = id_worst[np.argmax(mixture.w[id_worst])]
+    id_worst_worst = id_worst[np.argmin(mixture.w[id_worst])]
     pred_experts = p_experts[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
-    if mixture.w.shape[0] > max_experts:
-        avg_pred_experts = np.mean(p_experts[:, id_worst], axis=1, keepdims=True)
-        pred_experts = np.hstack([pred_experts, avg_pred_experts])
-        colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-        labels = np.hstack([labels, ["others"]])
+    # if mixture.w.shape[0] > max_experts:
+    #     avg_pred_experts = np.mean(p_experts[:, id_worst], axis=1, keepdims=True)
+    #     pred_experts = np.hstack([pred_experts, avg_pred_experts])
+    #     colors = np.vstack([colors, [0.6, 0.6, 0.6]])
+    #     labels = np.hstack([labels, ["others"]])
+
+    if id_worst.shape[0] > 0:
+        worst_worst_experts = p_experts[:, id_worst_worst]
+        worst_worst_experts = worst_worst_experts.reshape(
+            worst_worst_experts.shape[0], 1
+        )
+        pred_experts = np.hstack([pred_experts, worst_worst_experts])
+        colors = np.vstack([colors, [0.5, 0.5, 0.5]])
+        labels = np.hstack([labels, ["worst others"]])
+    if id_worst.shape[0] > 1:
+        best_worst_experts = p_experts[:, id_best_worst]
+        best_worst_experts = best_worst_experts.reshape(best_worst_experts.shape[0], 1)
+        pred_experts = np.hstack([pred_experts, best_worst_experts])
+        colors = np.vstack([colors, [0.7, 0.7, 0.7]])
+        labels = np.hstack([labels, ["best others"]])
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
     preds = np.column_stack((pred_experts, mixture.predictions, unimix))
