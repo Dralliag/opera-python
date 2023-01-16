@@ -634,8 +634,6 @@ class Mixture:
             self.weights = np.vstack((self.weights, updates.get("weights")))
             self.experts = np.vstack((self.experts, xt))
             self.targets = np.append(self.targets, value)
-        # TODO in R version, the loss used is the loss without gradient even if loss.gradient=TRUE
-        # checks if it's the correct behavior
         self.loss = np.mean(self.loss_type(self.predictions, self.targets))
         self.update_coefficient()
 
@@ -839,13 +837,13 @@ class Mixture:
             handles = boxplot_weight(
                 ax, labels, colors, self, max_experts, title, ylabel
             )
-            fig.legend(
-                handles["boxes"],
-                labels,
-                loc="upper center",
-                ncol=K + 2,
-                borderaxespad=1.0,
-            )
+            # fig.legend(
+            #     handles["boxes"],
+            #     labels,
+            #     loc="upper center",
+            #     ncol=K + 2,
+            #     borderaxespad=1.0,
+            # )
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "plot_weight":
@@ -880,7 +878,7 @@ class Mixture:
             fig, ax = plt.subplots(dpi=100)
             # Cumulative loss
             avg_loss(ax, labels, unimix, colors, self, max_experts, title, ylabel)
-            fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
+            # fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         else:
