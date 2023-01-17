@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.optimize import minimize
 
 # Losses
 def mape(x, y):
@@ -476,6 +477,16 @@ class Mixture:
         coefficients="uniform",
         loss_type="mse",
         loss_gradient=True,
+        default=True,
+        fun_reg=None,
+        fun_reg_grad=None,
+        constr_eq=None,
+        constr_eq_jac=None,
+        constr_ineq=None,
+        constr_ineq_jac=None,
+        max_iter=None,
+        obj_tol=None,
+        w0=None,
     ):
         if callable(loss_type):
             self.loss_type = loss_type
@@ -497,17 +508,6 @@ class Mixture:
         self.model = model
         self.loss_gradient = loss_gradient
         self.gradient_to_call = getattr(self, "r_by_hand")
-        if model.upper() == "BOA":
-            self.predict_at_t = getattr(self, "predict_at_t_BOA")
-            self.update_coefficient = getattr(self, "update_coefficient_BOA")
-        elif model.upper() == "MLPOL":
-            self.predict_at_t = getattr(self, "predict_at_t_MLPol")
-            self.update_coefficient = getattr(self, "update_coefficient_MLPol")
-        elif model.upper() == "MLPROD":
-            self.predict_at_t = getattr(self, "predict_at_t_MLProd")
-            self.update_coefficient = getattr(self, "update_coefficient_MLProd")
-        else:
-            raise NotImplementedError(f"Algorithm {model} is not implemented.")
 
         if not isinstance(experts, pd.DataFrame):
             raise (TypeError("Experts must be a pandas dataframe"))
@@ -542,6 +542,91 @@ class Mixture:
         self.experts = np.empty((0, experts.shape[-1]))
         self.targets = np.array([])
         self.N = experts.shape[-1]
+        if model.upper() == "BOA":
+            self.predict_at_t = getattr(self, "predict_at_t_BOA")
+            self.update_coefficient = getattr(self, "update_coefficient_BOA")
+        elif model.upper() == "MLPOL":
+            self.predict_at_t = getattr(self, "predict_at_t_MLPol")
+            self.update_coefficient = getattr(self, "update_coefficient_MLPol")
+        elif model.upper() == "MLPROD":
+            self.predict_at_t = getattr(self, "predict_at_t_MLProd")
+            self.update_coefficient = getattr(self, "update_coefficient_MLProd")
+        elif model.upper() == "FTRL":
+            self.predict_at_t = getattr(self, "predict_at_t_FTRL")
+            self.update_coefficient = getattr(self, "update_coefficient_FTRL")
+            if (
+                loss_gradient is not None
+                and not callable(loss_gradient)
+                and loss_gradient is False
+            ):
+                raise ValueError(
+                    "loss_gradient must be provided to use the FTRL algorithm."
+                )
+            self.eta = True
+            self.eta = float("inf")
+            self.default_eta = True
+            if default is False and (fun_reg is None or not callable(fun_reg)):
+                raise ValueError(
+                    "fun_reg cannot be missing when other optimization parameters are provided."
+                )
+            if fun_reg_grad is not None and not callable(fun_reg_grad):
+                raise ValueError(
+                    "fun_reg_grad must be a function (the gradient of the fun_reg function)."
+                )
+            if constr_eq is not None and not callable(constr_eq):
+                raise ValueError("constr_eq must be provided as a function.")
+            if constr_ineq is not None and not callable(constr_ineq):
+                raise ValueError("constr_ineq must be provided as a function.")
+            if constr_eq_jac is not None and not callable(constr_eq_jac):
+                raise ValueError(
+                    "constr_eq_jac must be a function that returns a matrix."
+                )
+            if constr_ineq_jac is not None and not callable(constr_ineq_jac):
+                raise ValueError(
+                    "constr_ineq_jac must be a function that returns a matrix."
+                )
+            if constr_eq_jac is not None and constr_eq is None:
+                raise ValueError("constr_eq_jac is not None but contr_eq is missing.")
+            if constr_ineq_jac is not None and constr_ineq is None:
+                raise ValueError(
+                    "constr_ineq_jac is not None but contr_ineq is missing."
+                )
+            self.max_iter = 50 if max_iter is None else max_iter
+            self.obj_tol = 1e-2 if obj_tol is None else obj_tol
+            self.N = experts.shape[1]  # Number of experts
+            self.T = experts.shape[0]  # Number of instants
+            self.w0 = np.full(self.N, 1 / self.N) if w0 is None else w0
+            if default:
+                self.fun_reg = lambda x: sum(x * np.log(x / self.w0))
+                self.fun_reg_grad = lambda x: np.log(x / self.w0) + 1
+                self.constr_eq = lambda x: sum(x) - 1
+                self.constr_eq_jac = lambda x: np.ones((1, self.N))
+                self.constr_ineq = lambda x: x
+                self.constr_ineq_jac = lambda x: np.diag(self.N)
+            else:
+                self.fun_reg = fun_reg
+                self.fun_reg_grad = fun_reg_grad
+                self.constr_eq = constr_eq
+                self.constr_eq_jac = constr_eq_jac
+                self.constr_ineq = constr_ineq
+                self.constr_ineq_jac = constr_ineq_jac
+            if callable(loss_gradient) or loss_gradient:
+                self.G = np.zeros(self.N)
+            self.predictions = np.array([])
+            self.weights = np.empty((0, experts.shape[-1]))
+            # Define the initial values of the variables
+            x0 = [1 / self.N for i in range(self.N)]
+            eq_constraints = {"type": "eq", "fun": self.constr_eq}
+            ineq_constraints = {"type": "ineq", "fun": self.constr_ineq}
+            result = minimize(
+                self.fun_reg,
+                x0,
+                method="SLSQP",
+                constraints=[eq_constraints, ineq_constraints],
+            )
+            self.weights = np.vstack((self.weights, result.x))
+        else:
+            raise NotImplementedError(f"Algorithm {model} is not implemented.")
         self.update(experts, y, awake=awake)
 
     def r_by_hand(self, x, y, awake=None):
@@ -556,7 +641,6 @@ class Mixture:
                 self.loss_type(y_hat, y) * y_hat - self.loss_type(y_hat, y) * x
             )
 
-        self.awakes = np.vstack((self.awakes, awake))
         r = np.mean(r, axis=tuple(batch_axes))
         return y_hat, r
 
@@ -634,6 +718,8 @@ class Mixture:
             self.weights = np.vstack((self.weights, updates.get("weights")))
             self.experts = np.vstack((self.experts, xt))
             self.targets = np.append(self.targets, value)
+        self.awakes = np.vstack((self.awakes, awake))
+
         self.loss = np.mean(self.loss_type(self.predictions, self.targets))
         self.update_coefficient()
 
@@ -771,6 +857,39 @@ class Mixture:
         self.w = np.divide(self.w, np.sum(self.w, axis=-1, keepdims=True))
         self.w = normalize(self.w)
 
+    def predict_at_t_FTRL(self, x, y, awake=None):
+        y_hat = np.sum(self.weights[-1] * x)
+        G_t = self.loss_type(y_hat, y) * x
+        self.G = self.G + G_t
+        if self.default_eta:
+            self.eta = 1 / np.sqrt(1 / np.square(self.eta) + np.sum(np.square(G_t)))
+        obj = lambda x: (self.fun_reg(x) + self.eta * sum(self.G * x))
+        obj_grad = (
+            None
+            if self.fun_reg_grad is None
+            else lambda x: self.fun_reg_grad(x) + self.eta * self.G
+        )
+
+        x0 = self.w
+        eq_constraints = {"type": "eq", "fun": self.constr_eq}
+        ineq_constraints = {"type": "ineq", "fun": self.constr_ineq}
+        result = minimize(
+            obj,
+            x0,
+            method="SLSQP",
+            constraints=[eq_constraints, ineq_constraints],
+            jac=obj_grad,
+        )
+        self.w = result.x
+        slot_variables_updates = {
+            "weights": self.w,
+        }
+
+        return y_hat, slot_variables_updates
+
+    def update_coefficient_FTRL(self):
+        pass
+
     def plot_mixture(
         self, plot_type="all", colors=None, max_experts=None, title=None, ylabel=None
     ):
@@ -837,13 +956,6 @@ class Mixture:
             handles = boxplot_weight(
                 ax, labels, colors, self, max_experts, title, ylabel
             )
-            # fig.legend(
-            #     handles["boxes"],
-            #     labels,
-            #     loc="upper center",
-            #     ncol=K + 2,
-            #     borderaxespad=1.0,
-            # )
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "plot_weight":
@@ -878,7 +990,6 @@ class Mixture:
             fig, ax = plt.subplots(dpi=100)
             # Cumulative loss
             avg_loss(ax, labels, unimix, colors, self, max_experts, title, ylabel)
-            # fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         else:
