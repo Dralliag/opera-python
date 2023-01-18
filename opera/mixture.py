@@ -557,12 +557,12 @@ class Mixture:
             self.eta = float("inf")
             self.default_eta = True
             if parameters is not None:
-                self.tol = parameters["tol"] if "tol" in parameters else None
+                self.tol = parameters["tol"] if "tol" in parameters else 1e-20
                 self.options = (
                     parameters["options"] if "options" in parameters else None
                 )
             else:
-                self.tol = None
+                self.tol = 1e-20
                 self.options = None
             self.N = experts.shape[1]  # Number of experts
             self.T = experts.shape[0]  # Number of instants
