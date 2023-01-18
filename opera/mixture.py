@@ -477,16 +477,7 @@ class Mixture:
         coefficients="uniform",
         loss_type="mse",
         loss_gradient=True,
-        default=True,
-        fun_reg=None,
-        fun_reg_grad=None,
-        constr_eq=None,
-        constr_eq_jac=None,
-        constr_ineq=None,
-        constr_ineq_jac=None,
-        max_iter=None,
-        obj_tol=None,
-        w0=None,
+        parameters=None,
     ):
         if callable(loss_type):
             self.loss_type = loss_type
@@ -565,64 +556,58 @@ class Mixture:
             self.eta = True
             self.eta = float("inf")
             self.default_eta = True
-            if default is False and (fun_reg is None or not callable(fun_reg)):
-                raise ValueError(
-                    "fun_reg cannot be missing when other optimization parameters are provided."
+            if parameters is not None:
+                self.tol = parameters["tol"] if "tol" in parameters else None
+                self.options = (
+                    parameters["options"] if "options" in parameters else None
                 )
-            if fun_reg_grad is not None and not callable(fun_reg_grad):
-                raise ValueError(
-                    "fun_reg_grad must be a function (the gradient of the fun_reg function)."
-                )
-            if constr_eq is not None and not callable(constr_eq):
-                raise ValueError("constr_eq must be provided as a function.")
-            if constr_ineq is not None and not callable(constr_ineq):
-                raise ValueError("constr_ineq must be provided as a function.")
-            if constr_eq_jac is not None and not callable(constr_eq_jac):
-                raise ValueError(
-                    "constr_eq_jac must be a function that returns a matrix."
-                )
-            if constr_ineq_jac is not None and not callable(constr_ineq_jac):
-                raise ValueError(
-                    "constr_ineq_jac must be a function that returns a matrix."
-                )
-            if constr_eq_jac is not None and constr_eq is None:
-                raise ValueError("constr_eq_jac is not None but contr_eq is missing.")
-            if constr_ineq_jac is not None and constr_ineq is None:
-                raise ValueError(
-                    "constr_ineq_jac is not None but contr_ineq is missing."
-                )
-            self.max_iter = 50 if max_iter is None else max_iter
-            self.obj_tol = 1e-2 if obj_tol is None else obj_tol
+            else:
+                self.tol = None
+                self.options = None
             self.N = experts.shape[1]  # Number of experts
             self.T = experts.shape[0]  # Number of instants
-            self.w0 = np.full(self.N, 1 / self.N) if w0 is None else w0
-            if default:
+            self.w0 = np.full(self.N, 1 / self.N)
+            if (
+                parameters is None
+                or "fun_reg" not in parameters
+                or parameters["fun_reg"] is None
+            ):
                 self.fun_reg = lambda x: sum(x * np.log(x / self.w0))
                 self.fun_reg_grad = lambda x: np.log(x / self.w0) + 1
-                self.constr_eq = lambda x: sum(x) - 1
-                self.constr_eq_jac = lambda x: np.ones((1, self.N))
-                self.constr_ineq = lambda x: x
-                self.constr_ineq_jac = lambda x: np.diag(self.N)
+                self.constraints = []
+                eq_constraints = {
+                    "type": "eq",
+                    "fun": lambda x: sum(x) - 1,
+                    "jac": lambda x: np.ones((1, self.N)),
+                }
+                self.constraints.append(eq_constraints)
+                ineq_constraints = {
+                    "type": "ineq",
+                    "fun": lambda x: x,
+                    "jac": lambda x: np.eye(self.N),
+                }
+                self.constraints.append(ineq_constraints)
             else:
-                self.fun_reg = fun_reg
-                self.fun_reg_grad = fun_reg_grad
-                self.constr_eq = constr_eq
-                self.constr_eq_jac = constr_eq_jac
-                self.constr_ineq = constr_ineq
-                self.constr_ineq_jac = constr_ineq_jac
-            if callable(loss_gradient) or loss_gradient:
-                self.G = np.zeros(self.N)
-            self.predictions = np.array([])
-            self.weights = np.empty((0, experts.shape[-1]))
+                self.fun_reg = parameters["fun_reg"]
+                self.fun_reg_grad = (
+                    parameters["fun_reg_grad"] if "fun_reg_grad" in parameters else None
+                )
+                self.constraints = (
+                    parameters["constraints"] if "constraints" in parameters else None
+                )
+
+            self.G = np.zeros(self.N)
             # Define the initial values of the variables
             x0 = [1 / self.N for i in range(self.N)]
-            eq_constraints = {"type": "eq", "fun": self.constr_eq}
-            ineq_constraints = {"type": "ineq", "fun": self.constr_ineq}
+
             result = minimize(
                 self.fun_reg,
                 x0,
                 method="SLSQP",
-                constraints=[eq_constraints, ineq_constraints],
+                constraints=self.constraints,
+                tol=self.tol,
+                options=self.options,
+                jac=self.fun_reg_grad,
             )
             self.weights = np.vstack((self.weights, result.x))
         else:
@@ -871,13 +856,13 @@ class Mixture:
         )
 
         x0 = self.w
-        eq_constraints = {"type": "eq", "fun": self.constr_eq}
-        ineq_constraints = {"type": "ineq", "fun": self.constr_ineq}
         result = minimize(
             obj,
             x0,
             method="SLSQP",
-            constraints=[eq_constraints, ineq_constraints],
+            constraints=self.constraints,
+            tol=self.tol,
+            options=self.options,
             jac=obj_grad,
         )
         self.w = result.x
@@ -888,7 +873,7 @@ class Mixture:
         return y_hat, slot_variables_updates
 
     def update_coefficient_FTRL(self):
-        pass
+        self.weights = np.delete(self.weights, -1, axis=0)
 
     def plot_mixture(
         self, plot_type="all", colors=None, max_experts=None, title=None, ylabel=None
