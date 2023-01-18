@@ -156,11 +156,6 @@ def avg_loss(ax, labels, unimix, colors, mixture, max_experts, title=None, ylabe
     targets = mixture.targets
     colors = colors[id_best]
     labels = labels[id_best]
-    # if mixture.w.shape[0] > max_experts:
-    #     avg_experts = np.mean(mixture.experts[:, id_worst], axis=1, keepdims=True)
-    #     experts = np.hstack([experts, avg_experts])
-    #     colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-    #     labels = np.hstack([labels, ["others"]])
 
     if id_worst.shape[0] > 0:
         id_worst_worst = id_worst[np.argmin(mean_weights[id_worst])]
@@ -208,11 +203,6 @@ def cumul_res(
     pred_experts = p_experts[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
-    # if mixture.w.shape[0] > max_experts:
-    #     avg_pred_experts = np.mean(p_experts[:, id_worst], axis=1, keepdims=True)
-    #     pred_experts = np.hstack([pred_experts, avg_pred_experts])
-    #     colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-    #     labels = np.hstack([labels, ["others"]])
 
     if id_worst.shape[0] > 0:
         id_worst_worst = id_worst[np.argmin(mean_weights[id_worst])]
@@ -261,11 +251,6 @@ def dyn_avg_loss(
     pred_experts = p_experts[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
-    # if mixture.w.shape[0] > max_experts:
-    #     avg_pred_experts = np.mean(p_experts[:, id_worst], axis=1, keepdims=True)
-    #     pred_experts = np.hstack([pred_experts, avg_pred_experts])
-    #     colors = np.vstack([colors, [0.6, 0.6, 0.6]])
-    #     labels = np.hstack([labels, ["others"]])
 
     if id_worst.shape[0] > 0:
         id_worst_worst = id_worst[np.argmin(mean_weights[id_worst])]
@@ -376,6 +361,13 @@ class Mixture:
             Defaults to mse.
         loss_gradient (function or bool, optional): the derivative of the custom loss function or a Boolean specifying
             whether the loss is used with gradient or no.. Defaults to True.
+        parameters (dict): dict of optional parameters for FTRL algorithm, default to None, available parameters :
+            - "fun_reg": objective function
+            - "fun_reg_grad": gradient of the objective function
+            - "constraints": liste of constraints to pass to the optimizer
+            - "tol": tolerance for termination
+            - "options": a dictionary of solver options
+            For more informations on how to use the parameters, give a look to Example 4 below
 
     Attributes
     ----------
@@ -466,6 +458,45 @@ class Mixture:
     colors = cm.rainbow(np.linspace(0, 400, 1000))
     mod_3.plot_mixture(plot_type="plot_weight", colors=colors, title = "Custom title", ylabel = "Ylabel")
 
+    # Example 4
+    import pandas as pd
+    from opera.mixture import Mixture
+    import numpy as np
+
+    targets = pd.read_csv("data/targets.csv")["x"]
+    experts = pd.read_csv("data/experts.csv")
+    N = experts.shape[1]
+    w0 = np.full(N, 1 / N)
+    fun_reg = lambda x: sum(x * np.log(x / w0))
+    fun_reg_grad = lambda x: np.log(x / w0) + 1
+    constraints = []
+    eq_constraints = {
+        "type": "eq",
+        "fun": lambda x: sum(x) -1,
+        "jac": lambda x: np.ones((1, N)),
+    }
+    constraints.append(eq_constraints)
+    ineq_constraints = {
+        "type": "ineq",
+        "fun": lambda x: x,
+        "jac": lambda x: np.eye(N),
+    }
+    constraints.append(ineq_constraints)
+    parameters = {
+        "fun_reg":fun_reg,
+        "fun_reg_grad":fun_reg_grad,
+        "constraints":constraints,
+        "tol":1e-20,
+        "options":{"maxiter":50},
+    }
+    mod_1 = Mixture(
+        y=targets,
+        experts=experts,
+        model="FTRL",
+        loss_type="mse",
+        loss_gradient=True,
+        parameters=parameters
+    )
     """
 
     def __init__(
@@ -745,7 +776,7 @@ class Mixture:
             "learning_rates": self.learning_rates,
             "cum_regrets": self.cum_regrets,
             "weights": self.w,
-        }  # could be compute with learning_rates and cum_regrets
+        }
 
         return y_hat, slot_variables_updates
 
