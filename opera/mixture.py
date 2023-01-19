@@ -63,22 +63,33 @@ def idx_best(arr, k):
     return result[arr.shape[0] - k :]
 
 
-def plot_weight(ax, colors, mixture, max_experts, title=None, ylabel=None):
+def plot_weight(
+    ax,
+    colors,
+    mixture,
+    max_experts,
+    title=None,
+    ylabel=None,
+    index_start=None,
+    index_stop=None,
+):
 
     # Stack plot of weights associated to each expert
     if title is None:
         title = "Weights associated with the experts"
     if ylabel is None:
         ylabel = "Weights"
+    printable_weights = mixture.weights[index_start:index_stop].copy()
+    # print(printable_weights)
     labels = np.array(mixture.experts_names)
-    mean_weights = np.mean(mixture.weights, axis=0)
+    mean_weights = np.mean(printable_weights, axis=0)
     id_worst = idx_worst(mean_weights, max_experts)
     id_best = idx_best(mean_weights, max_experts)
-    weights = mixture.weights[:, id_best]
+    weights = printable_weights[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
     if mixture.w.shape[0] > max_experts:
-        avg_weights = np.sum(mixture.weights[:, id_worst], axis=1, keepdims=True)
+        avg_weights = np.sum(printable_weights[:, id_worst], axis=1, keepdims=True)
         weights = np.hstack([avg_weights, weights])
         colors = np.vstack([[0.6, 0.6, 0.6], colors])
         labels = np.hstack([["others"], labels])
@@ -94,7 +105,16 @@ def plot_weight(ax, colors, mixture, max_experts, title=None, ylabel=None):
     ax.grid()
 
 
-def boxplot_weight(ax, colors, mixture, max_experts, title=None, ylabel=None):
+def boxplot_weight(
+    ax,
+    colors,
+    mixture,
+    max_experts,
+    title=None,
+    ylabel=None,
+    index_start=None,
+    index_stop=None,
+):
     # Boxplot of weights associated to each expert
 
     if title is None:
@@ -102,17 +122,19 @@ def boxplot_weight(ax, colors, mixture, max_experts, title=None, ylabel=None):
     if ylabel is None:
         ylabel = "Weights"
     labels = np.array(mixture.experts_names)
-    mean_weights = np.mean(mixture.weights, axis=0)
+    printable_weights = mixture.weights[index_start:index_stop].copy()
+
+    mean_weights = np.mean(printable_weights, axis=0)
 
     id_worst = idx_worst(mean_weights, max_experts)
     id_best = idx_best(mean_weights, max_experts)
 
-    weights = mixture.weights[:, id_best]
+    weights = printable_weights[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
     if id_worst.shape[0] > 0:
         id_worst_worst = id_worst[np.argmin(mean_weights[id_worst])]
-        worst_worst_weights = mixture.weights[:, id_worst_worst]
+        worst_worst_weights = printable_weights[:, id_worst_worst]
         worst_worst_weights = worst_worst_weights.reshape(
             worst_worst_weights.shape[0], 1
         )
@@ -121,7 +143,7 @@ def boxplot_weight(ax, colors, mixture, max_experts, title=None, ylabel=None):
         labels = np.hstack([labels, ["worst others"]])
     if id_worst.shape[0] > 1:
         id_best_worst = id_worst[np.argmax(mean_weights[id_worst])]
-        best_worst_weights = mixture.weights[:, id_best_worst]
+        best_worst_weights = printable_weights[:, id_best_worst]
         best_worst_weights = best_worst_weights.reshape(best_worst_weights.shape[0], 1)
         weights = np.hstack([weights, best_worst_weights])
         colors = np.vstack([colors, [0.7, 0.7, 0.7]])
@@ -142,7 +164,16 @@ def boxplot_weight(ax, colors, mixture, max_experts, title=None, ylabel=None):
     return handles
 
 
-def avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
+def avg_loss(
+    ax,
+    colors,
+    mixture,
+    max_experts,
+    title=None,
+    ylabel=None,
+    index_start=None,
+    index_stop=None,
+):
 
     if title is None:
         title = "Average loss suffered by the experts"
@@ -150,19 +181,22 @@ def avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
         ylabel = "Average Loss"
     labels = np.array(mixture.experts_names)
     K = mixture.experts.shape[1]
-    unimix = np.sum(mixture.experts * np.ones_like(mixture.experts) / K, 1)
-    mean_weights = np.mean(mixture.weights, axis=0)
+    printable_weights = mixture.weights[index_start:index_stop].copy()
+
+    mean_weights = np.mean(printable_weights, axis=0)
     id_worst = idx_worst(mean_weights, max_experts)
     id_best = idx_best(mean_weights, max_experts)
-    experts = mixture.experts[:, id_best]
-    predictions = mixture.predictions
-    targets = mixture.targets
+    printable_experts = mixture.experts[index_start:index_stop].copy()
+    experts = printable_experts[:, id_best]
+    predictions = mixture.predictions[index_start:index_stop].copy()
+    targets = mixture.targets[index_start:index_stop].copy()
+    unimix = np.sum(printable_experts * np.ones_like(printable_experts) / K, 1)
     colors = colors[id_best]
     labels = labels[id_best]
 
     if id_worst.shape[0] > 0:
         id_worst_worst = id_worst[np.argmin(mean_weights[id_worst])]
-        worst_worst_experts = mixture.experts[:, id_worst_worst]
+        worst_worst_experts = printable_experts[:, id_worst_worst]
         worst_worst_experts = worst_worst_experts.reshape(
             worst_worst_experts.shape[0], 1
         )
@@ -171,7 +205,7 @@ def avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
         labels = np.hstack([labels, ["worst others"]])
     if id_worst.shape[0] > 1:
         id_best_worst = id_worst[np.argmax(mean_weights[id_worst])]
-        best_worst_experts = mixture.experts[:, id_best_worst]
+        best_worst_experts = printable_experts[:, id_best_worst]
         best_worst_experts = best_worst_experts.reshape(best_worst_experts.shape[0], 1)
         experts = np.hstack([experts, best_worst_experts])
         colors = np.vstack([colors, [0.7, 0.7, 0.7]])
@@ -188,7 +222,16 @@ def avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
     ax.grid()
 
 
-def cumul_res(ax, colors, mixture, max_experts, title=None, ylabel=None):
+def cumul_res(
+    ax,
+    colors,
+    mixture,
+    max_experts,
+    title=None,
+    ylabel=None,
+    index_start=None,
+    index_stop=None,
+):
 
     if title is None:
         title = "Cumulative Residuals"
@@ -196,12 +239,16 @@ def cumul_res(ax, colors, mixture, max_experts, title=None, ylabel=None):
         ylabel = "Cumulative Residuals"
     labels = np.array(mixture.experts_names)
     K = mixture.experts.shape[1]
-    unimix = np.sum(mixture.experts * np.ones_like(mixture.experts) / K, 1)
-
-    p_experts = mixture.experts * mixture.awakes + mixture.predictions.reshape(
-        mixture.predictions.shape[0], 1
-    ) * (1 - mixture.awakes)
-    mean_weights = np.mean(mixture.weights, axis=0)
+    printable_weights = mixture.weights[index_start:index_stop].copy()
+    printable_awakes = mixture.awakes[index_start:index_stop].copy()
+    printable_experts = mixture.experts[index_start:index_stop].copy()
+    predictions = mixture.predictions[index_start:index_stop].copy()
+    targets = mixture.targets[index_start:index_stop].copy()
+    unimix = np.sum(printable_experts * np.ones_like(printable_experts) / K, 1)
+    p_experts = printable_experts * printable_awakes + predictions.reshape(
+        predictions.shape[0], 1
+    ) * (1 - printable_awakes)
+    mean_weights = np.mean(printable_weights, axis=0)
     id_worst = idx_worst(mean_weights, max_experts)
     id_best = idx_best(mean_weights, max_experts)
     pred_experts = p_experts[:, id_best]
@@ -226,8 +273,8 @@ def cumul_res(ax, colors, mixture, max_experts, title=None, ylabel=None):
         labels = np.hstack([labels, ["best others"]])
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
-    preds = np.column_stack((pred_experts, mixture.predictions, unimix))
-    cumres = np.cumsum([mixture.targets - pred for pred in preds.T], 1).T
+    preds = np.column_stack((pred_experts, predictions, unimix))
+    cumres = np.cumsum([targets - pred for pred in preds.T], 1).T
     for i in range(2, cumres.shape[1]):
         ax.plot(cumres[:, i], color=colors[i], label=alabels[i])
     ax.plot(cumres[:, 0], color=colors[0], label=alabels[0])
@@ -237,7 +284,16 @@ def cumul_res(ax, colors, mixture, max_experts, title=None, ylabel=None):
     ax.grid()
 
 
-def dyn_avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
+def dyn_avg_loss(
+    ax,
+    colors,
+    mixture,
+    max_experts,
+    title=None,
+    ylabel=None,
+    index_start=None,
+    index_stop=None,
+):
 
     if title is None:
         title = "Dynamic average loss"
@@ -245,12 +301,17 @@ def dyn_avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
         ylabel = "Cumulative Loss"
     labels = np.array(mixture.experts_names)
     K = mixture.experts.shape[1]
-    unimix = np.sum(mixture.experts * np.ones_like(mixture.experts) / K, 1)
+    printable_weights = mixture.weights[index_start:index_stop].copy()
+    printable_awakes = mixture.awakes[index_start:index_stop].copy()
+    printable_experts = mixture.experts[index_start:index_stop].copy()
+    unimix = np.sum(printable_experts * np.ones_like(printable_experts) / K, 1)
+    predictions = mixture.predictions[index_start:index_stop].copy()
+    targets = mixture.targets[index_start:index_stop].copy()
 
-    p_experts = mixture.experts * mixture.awakes + mixture.predictions.reshape(
-        mixture.predictions.shape[0], 1
-    ) * (1 - mixture.awakes)
-    mean_weights = np.mean(mixture.weights, axis=0)
+    p_experts = printable_experts * printable_awakes + predictions.reshape(
+        predictions.shape[0], 1
+    ) * (1 - printable_awakes)
+    mean_weights = np.mean(printable_weights, axis=0)
     id_worst = idx_worst(mean_weights, max_experts)
     id_best = idx_best(mean_weights, max_experts)
     pred_experts = p_experts[:, id_best]
@@ -275,10 +336,8 @@ def dyn_avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
         labels = np.hstack([labels, ["best others"]])
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
-    preds = np.column_stack((pred_experts, mixture.predictions, unimix))
-    cumloss = np.cumsum(
-        [mixture.loss_type(mixture.targets, pred) for pred in preds.T], 1
-    ).T
+    preds = np.column_stack((pred_experts, predictions, unimix))
+    cumloss = np.cumsum([mixture.loss_type(targets, pred) for pred in preds.T], 1).T
     div = np.arange(1, preds.shape[0] + 1)
     div = np.repeat(div, preds.shape[1]).reshape(preds.shape)
     cumloss = cumloss / div
@@ -291,7 +350,16 @@ def dyn_avg_loss(ax, colors, mixture, max_experts, title=None, ylabel=None):
     ax.grid()
 
 
-def contrib(ax, colors, mixture, max_experts, title=None, ylabel=None):
+def contrib(
+    ax,
+    colors,
+    mixture,
+    max_experts,
+    title=None,
+    ylabel=None,
+    index_start=None,
+    index_stop=None,
+):
 
     if title is None:
         title = "Contribution of each expert to the prediction"
@@ -299,29 +367,31 @@ def contrib(ax, colors, mixture, max_experts, title=None, ylabel=None):
         ylabel = "Contributions"
 
     # Stack plot of weights associated to each expert
-    mean_weights = np.mean(mixture.weights, axis=0)
+    printable_weights = mixture.weights[index_start:index_stop].copy()
+    printable_predictions = mixture.predictions[index_start:index_stop].copy()
+    mean_weights = np.mean(printable_weights, axis=0)
     id_worst = idx_worst(mean_weights, max_experts)
     id_best = idx_best(mean_weights, max_experts)
     labels = np.array(mixture.experts_names)
-    weights = mixture.weights[:, id_best]
+    weights = printable_weights[:, id_best]
     colors = colors[id_best]
     labels = labels[id_best]
     if mixture.w.shape[0] > max_experts:
-        avg_weights = np.sum(mixture.weights[:, id_worst], axis=1, keepdims=True)
+        avg_weights = np.sum(printable_weights[:, id_worst], axis=1, keepdims=True)
         weights = np.hstack([avg_weights, weights])
         colors = np.vstack([[0.6, 0.6, 0.6], colors])
         labels = np.hstack([["others"], labels])
 
     ax.stackplot(
         range(len(weights)),
-        np.stack(weights).T * mixture.predictions,
+        np.stack(weights).T * printable_predictions,
         edgecolor="white",
         colors=colors,
         labels=labels,
     )
     ax.plot(
-        range(len(mixture.predictions)),
-        mixture.predictions,
+        range(len(printable_predictions)),
+        printable_predictions,
         color="black",
         linestyle="dashed",
         label="Predictions",
@@ -930,6 +1000,7 @@ class Mixture:
                 - dyn_avg_loss: Dynamic average loss
                 - cumul_res: Cumulative Residuals
                 - avg_loss: Average loss suffered by the experts
+                - contrib: contibution of each expert to the prediction
                 - all Display all the above graphs
                 Defaults to "all".
             colors (numpy.array, optional): array of colors to be used for the plots. Defaults to None.
@@ -938,6 +1009,36 @@ class Mixture:
             ylabel (str, optional) : ylabel. Only available plotting one graphic (not using plot_type = "all")
             index_start (int) : the index where the plots starts (may be positive or negative)
             index_stop (int) : the index where the plots stops (may be positive or negative)
+
+        Examples :
+
+        import pandas as pd
+        from opera.mixture import Mixture
+        import numpy as np
+        targets = pd.read_csv("data/targets.csv")["x"]
+        experts = pd.read_csv("data/experts.csv")
+        mod_1 = Mixture(y=targets,experts=experts,model="BOA",loss_type="mse",loss_gradient=True)
+
+        # default plot
+        mod_1.plot_mixture()
+
+        # plot one
+        mod_1.plot_mixture(plot_type="contrib")
+
+        # plot only last 100 predictions
+        mod_1.plot_mixture(index_start=-100)
+
+        # plot only first 50 predictions
+        mod_1.plot_mixture(index_stop=-50)
+
+        # plot between two indexes
+        mod_1.plot_mixture(index_start=10,index_stop=50)
+
+        # plot with custom colors
+        import seaborn as sns
+        colors = sns.color_palette("Set2", experts.shape[0] + 2)
+        mod_1.plot_mixture(colors=colors)
+
         """
         figsize = (10, 8)
         K = self.experts.shape[1]
@@ -951,19 +1052,61 @@ class Mixture:
         if plot_type == "all":
             fig, ax = plt.subplots(3, 2, figsize=figsize, dpi=100)
             # Stack plot of weights associated to each expert
-            plot_weight(ax[0, 0], labels, colors, self, max_experts)
+            plot_weight(
+                ax[0, 0],
+                colors,
+                self,
+                max_experts,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             # Boxplot of weights associated to each expert
-            boxplot_weight(ax[0, 1], labels, colors, self, max_experts)
+            boxplot_weight(
+                ax[0, 1],
+                colors,
+                self,
+                max_experts,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             # Barplot loss
-            dyn_avg_loss(ax[1, 0], labels, colors, self, max_experts)
+            dyn_avg_loss(
+                ax[1, 0],
+                colors,
+                self,
+                max_experts,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             # Cumulative residuals
-            cumul_res(ax[1, 1], labels, colors, self, max_experts)
+            cumul_res(
+                ax[1, 1],
+                colors,
+                self,
+                max_experts,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
 
             # Cumulative loss
-            avg_loss(ax[2, 0], labels, colors, self, max_experts)
+            avg_loss(
+                ax[2, 0],
+                colors,
+                self,
+                max_experts,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
 
             # Cumulative loss
-            contrib(ax[2, 1], labels, colors, self, max_experts)
+            contrib(
+                ax[2, 1],
+                colors,
+                self,
+                max_experts,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
 
             handles, labels = ax[1, 1].get_legend_handles_labels()
             fig.legend(handles, labels, loc="upper center", ncol=10, borderaxespad=1.0)
@@ -972,41 +1115,95 @@ class Mixture:
         elif plot_type == "boxplot_weight":
             fig, ax = plt.subplots(dpi=100)
             # Boxplot of weights associated to each expert
-            handles = boxplot_weight(ax, colors, self, max_experts, title, ylabel)
+            handles = boxplot_weight(
+                ax,
+                colors,
+                self,
+                max_experts,
+                title,
+                ylabel,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "plot_weight":
             fig, ax = plt.subplots(dpi=100)
             # Stack plot of weights associated to each expert
-            plot_weight(ax, colors, self, max_experts, title, ylabel)
+            plot_weight(
+                ax,
+                colors,
+                self,
+                max_experts,
+                title,
+                ylabel,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "contrib":
             fig, ax = plt.subplots(dpi=100)
             # Stack plot of weights associated to each expert
-            contrib(ax, colors, self, max_experts, title, ylabel)
+            contrib(
+                ax,
+                colors,
+                self,
+                max_experts,
+                title,
+                ylabel,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "dyn_avg_loss":
             fig, ax = plt.subplots(dpi=100)
             # Barplot loss
-            dyn_avg_loss(ax, colors, self, max_experts, title, ylabel)
+            dyn_avg_loss(
+                ax,
+                colors,
+                self,
+                max_experts,
+                title,
+                ylabel,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "cumul_res":
             fig, ax = plt.subplots(dpi=100)
             # Cumulative residuals
-            cumul_res(ax, colors, self, max_experts, title, ylabel)
+            cumul_res(
+                ax,
+                colors,
+                self,
+                max_experts,
+                title,
+                ylabel,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "avg_loss":
             fig, ax = plt.subplots(dpi=100)
             # Cumulative loss
-            avg_loss(ax, colors, self, max_experts, title, ylabel)
+            avg_loss(
+                ax,
+                colors,
+                self,
+                max_experts,
+                title,
+                ylabel,
+                index_start=index_start,
+                index_stop=index_stop,
+            )
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         else:
