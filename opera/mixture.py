@@ -424,7 +424,7 @@ class Mixture:
         awake (numpy.array or pandas.DataFrame, optional): A matrix specifying the activation coefficients
             of the experts. Defaults to None.
         model (str, optional): string specifying the aggregation rule to use. Currently available aggregation
-            rules are: BOA, MLpol, MLprod. Defaults to "BOA".
+            rules are: BOA, MLpol, MLprod, FTRL. Defaults to "BOA".
         coefficients (array or str, optional): array of weight to be used for the aggregation rule. Defaults to "uniform".
         loss_type (function or string, optional): a custom function to evaluate the performances of the aggregation
         rule or a string specifying one of the available functions
@@ -996,12 +996,12 @@ class Mixture:
         Args:
             plot_type (str, optional): string specifying the plots to show, available plots:
                 - plot_weight: Weights associated with the experts
-                - boxplot_weight: Weights associated with the experts
-                - dyn_avg_loss: Dynamic average loss
-                - cumul_res: Cumulative Residuals
-                - avg_loss: Average loss suffered by the experts
+                - boxplot_weight: weights associated with the experts
+                - dyn_avg_loss: dynamic average loss
+                - cumul_res: cumulative Residuals
+                - avg_loss: average loss suffered by the experts
                 - contrib: contibution of each expert to the prediction
-                - all Display all the above graphs
+                - all display all the above graphs
                 Defaults to "all".
             colors (numpy.array, optional): array of colors to be used for the plots. Defaults to None.
             max_experts (int): max number of expert to be displayed
