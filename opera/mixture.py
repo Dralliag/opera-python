@@ -871,11 +871,14 @@ class Mixture:
         np_relu = np.maximum(self.cum_regrets, 0)
         self.w = np.multiply(self.learning_rates, np_relu)
         w_sum = np.sum(self.w, axis=-1, keepdims=True)
-        self.w = np.where(
-            np.equal(w_sum, np.zeros(self.w.shape)),
-            np.ones(self.w.shape) / self.K,
-            np.divide(self.w, w_sum),
-        )
+        if w_sum != 0:
+            self.w = np.where(
+                np.equal(w_sum, np.zeros(self.w.shape)),
+                np.ones(self.w.shape) / self.K,
+                np.divide(self.w, w_sum),
+            )
+        else :
+            self.w = np.ones(self.w.shape) / self.K
 
         self.w = normalize(awake * self.w)
 
@@ -905,11 +908,14 @@ class Mixture:
         np_relu = np.maximum(self.cum_regrets, 0)
         self.w = np.multiply(self.learning_rates, np_relu)
         w_sum = np.sum(self.w, axis=-1, keepdims=True)
-        self.w = np.where(
-            np.equal(w_sum, np.zeros(self.w.shape)),
-            np.ones(self.w.shape) / self.K,
-            np.divide(self.w, w_sum),
-        )
+        if w_sum != 0:
+            self.w = np.where(
+                np.equal(w_sum, np.zeros(self.w.shape)),
+                np.ones(self.w.shape) / self.K,
+                np.divide(self.w, w_sum),
+            )
+        else :
+            self.w = np.ones(self.w.shape) / self.K
         self.w = normalize(self.w)
 
     def predict_at_t_MLProd(self, x, y, awake=None):
