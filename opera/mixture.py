@@ -159,8 +159,10 @@ def boxplot_weight(
     for box, c in zip(ax.patches, colors[idx]):
         box.set_facecolor(c)
     ax.set_title(title)
+    ax.set_xticklabels(labels[idx], rotation=90)
     ax.set(ylabel=ylabel)
     ax.grid()
+
     return handles
 
 
@@ -218,6 +220,7 @@ def avg_loss(
     idx = np.argsort(loss.mean(1))
     ax.bar(alabels[idx], sortedloss, color=colors[idx], alpha=1, label=alabels[idx])
     ax.set_title(title)
+    ax.set_xticklabels(alabels[idx], rotation=90)
     ax.set(ylabel=ylabel)
     ax.grid()
 
@@ -1117,7 +1120,7 @@ class Mixture:
             )
 
             handles, labels = ax[1, 1].get_legend_handles_labels()
-            fig.legend(handles, labels, loc="upper center", ncol=10, borderaxespad=1.0)
+            fig.legend(handles, labels, loc="upper center", ncol=10, bbox_to_anchor=(0.5, 1), frameon=False)
             fig.suptitle(" ", fontsize=24)
             fig.tight_layout()
         elif plot_type == "boxplot_weight":
@@ -1148,7 +1151,7 @@ class Mixture:
                 index_start=index_start,
                 index_stop=index_stop,
             )
-            fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
+            fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0, bbox_to_anchor=(0.5, 1), frameon=False)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "contrib":
@@ -1164,7 +1167,7 @@ class Mixture:
                 index_start=index_start,
                 index_stop=index_stop,
             )
-            fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
+            fig.legend(loc="upper center", ncol=K + 2, bbox_to_anchor=(0.5, 1), frameon=False)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "dyn_avg_loss":
@@ -1180,7 +1183,7 @@ class Mixture:
                 index_start=index_start,
                 index_stop=index_stop,
             )
-            fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
+            fig.legend(loc="upper center", ncol=K + 2, bbox_to_anchor=(0.5, 1), frameon=False)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "cumul_res":
@@ -1196,7 +1199,7 @@ class Mixture:
                 index_start=index_start,
                 index_stop=index_stop,
             )
-            fig.legend(loc="upper center", ncol=K + 2, borderaxespad=1.0)
+            fig.legend(loc="upper center", ncol=K + 2, bbox_to_anchor=(0.5, 1), frameon=False)
             fig.suptitle(" ", fontsize=16)
             fig.tight_layout()
         elif plot_type == "avg_loss":
