@@ -213,7 +213,7 @@ def avg_loss(
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
     preds = np.column_stack((experts, predictions, unimix))
-    loss = np.array([mixture.loss_type(targets, pred) for pred in preds.T])
+    loss = np.array([mixture.loss_function(targets, pred) for pred in preds.T])
     sortedloss = np.sort(loss.mean(1))  # - epsilon
     idx = np.argsort(loss.mean(1))
     ax.bar(alabels[idx], sortedloss, color=colors[idx], alpha=1, label=alabels[idx])
@@ -298,7 +298,7 @@ def dyn_avg_loss(
     if title is None:
         title = "Dynamic average loss"
     if ylabel is None:
-        ylabel = "Cumulative Loss"
+        ylabel = "Average Loss"
     labels = np.array(mixture.experts_names)
     K = mixture.experts.shape[1]
     printable_weights = mixture.weights[index_start:index_stop].copy()
@@ -337,7 +337,7 @@ def dyn_avg_loss(
     alabels = np.hstack((labels, mixture.model, "Uniform"))
     colors = np.vstack([colors, [0, 0, 0], [0.3, 0.3, 0.3]])
     preds = np.column_stack((pred_experts, predictions, unimix))
-    cumloss = np.cumsum([mixture.loss_type(targets, pred) for pred in preds.T], 1).T
+    cumloss = np.cumsum([mixture.loss_function(targets, pred) for pred in preds.T], 1).T
     div = np.arange(1, preds.shape[0] + 1)
     div = np.repeat(div, preds.shape[1]).reshape(preds.shape)
     cumloss = cumloss / div
@@ -587,6 +587,7 @@ class Mixture:
     ):
         if callable(loss_type):
             self.loss_type = loss_type
+            self.loss_function = loss_type
             if loss_gradient and not callable(loss_gradient):
                 raise ValueError(
                     "When a custom loss function is passed the loss_gradient should be either False or the gradient function corresponding to the loss function"
@@ -594,6 +595,7 @@ class Mixture:
             if callable(loss_gradient):
                 self.loss_type = loss_gradient
         elif loss_type.lower() in ["mape", "mae", "mse", "msle", "mspe"]:
+            self.loss_function = globals()[loss_type.lower()]
             if loss_gradient and not callable(loss_gradient):
                 self.loss_type = globals()["gradient_" + loss_type.lower()]
             elif loss_gradient and callable(loss_gradient):
@@ -811,7 +813,7 @@ class Mixture:
             self.targets = np.append(self.targets, value)
         self.awakes = np.vstack((self.awakes, awake))
 
-        self.loss = np.mean(self.loss_type(self.predictions, self.targets))
+        self.loss = np.mean(self.loss_function(self.predictions, self.targets))
         self.update_coefficient()
 
     def predict_at_t_BOA(self, x, y, awake=None):
@@ -1094,7 +1096,7 @@ class Mixture:
                 index_stop=index_stop,
             )
 
-            # Cumulative loss
+            # Average loss
             avg_loss(
                 ax[2, 0],
                 colors,
@@ -1104,7 +1106,7 @@ class Mixture:
                 index_stop=index_stop,
             )
 
-            # Cumulative loss
+            # Average loss
             contrib(
                 ax[2, 1],
                 colors,
@@ -1199,7 +1201,7 @@ class Mixture:
             fig.tight_layout()
         elif plot_type == "avg_loss":
             fig, ax = plt.subplots(dpi=100)
-            # Cumulative loss
+            # Average loss
             avg_loss(
                 ax,
                 colors,
